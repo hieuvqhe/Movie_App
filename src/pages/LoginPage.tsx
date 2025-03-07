@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { FiUser, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { Button } from '../components/common';
 import useAuthStore from '../store/authStore';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');

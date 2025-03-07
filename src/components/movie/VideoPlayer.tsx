@@ -230,9 +230,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     
     // Classify error type
     const errorMessage = err?.message || String(err);
-    const isNetworkError = errorMessage.includes('Network Error') || 
-                          errorMessage.includes('network') || 
-                          errorMessage.includes('fetch');
+
     const isHlsError = errorMessage.includes('hlsError') || 
                       errorMessage.includes('hls');
 
@@ -426,7 +424,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       tabIndex={0} // Make the container focusable
       className="relative w-full aspect-video bg-black rounded-lg overflow-hidden"
       onMouseMove={showControls}
-      onClick={(e) => {
+      onClick={() => {
         handlePlayPause();
         playerContainerRef.current?.focus();
       }}

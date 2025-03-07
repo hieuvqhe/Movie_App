@@ -144,3 +144,63 @@ export const searchMovies = async (keyword, page = 1, limit = 24) => {
     throw new Error('Không thể tìm kiếm phim. Vui lòng thử lại sau.');
   }
 };
+
+
+export const getSimilarMovies = async (movieDetail, limit = 12) => {
+  try {
+    if (!movieDetail || !movieDetail.category || !movieDetail.category.length) {
+      throw new Error('Movie has no category information');
+    }
+
+    // Get the primary category and country
+    const primaryCategory = movieDetail.category[0].slug;
+    
+    // Build the query parameters
+    const params = {
+      page: 1,
+      limit: limit,
+      sort_field: 'modified.time', // Get most recently updated similar movies
+      sort_type: 'desc'
+    };
+
+    // Add country filter if available
+    if (movieDetail.country && movieDetail.country.length > 0) {
+      params.country = movieDetail.country[0].slug;
+    }
+
+    // Make API call to get similar movies by category
+    const response = await axios.get(`${BASE_URL}/v1/api/the-loai/${primaryCategory}`, { params });
+
+    if (!response.data.status) {
+      throw new Error(response.data.msg || 'Failed to fetch similar movies');
+    }
+
+    // Process the response to normalize image URLs and filter out the current movie
+    const similarMovies = response.data.data.items
+      .filter(movie => movie._id !== movieDetail._id) // Filter out the current movie
+      .map(movie => ({
+        ...movie,
+        poster_url: movie.poster_url?.startsWith('http') 
+          ? movie.poster_url 
+          : `${BASE_IMAGE_URL}/${movie.poster_url}`,
+        thumb_url: movie.thumb_url?.startsWith('http') 
+          ? movie.thumb_url 
+          : `${BASE_IMAGE_URL}/${movie.thumb_url}`
+      }));
+
+    return {
+      status: 'success',
+      data: {
+        items: similarMovies.slice(0, limit), // Make sure we don't exceed the limit
+        total: similarMovies.length
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching similar movies:', error);
+    return {
+      status: 'error',
+      msg: error.message || 'Failed to fetch similar movies',
+      data: { items: [] }
+    };
+  }
+};

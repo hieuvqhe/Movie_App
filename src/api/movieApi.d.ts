@@ -67,3 +67,69 @@ export function getMoviesByYear(year?: number, page?: number, limit?: number): P
 export function getCategoryMovies(category: string, page?: number, limit?: number): Promise<MovieResponse>;
 export function fetchMovieDetail(slug: string): Promise<MovieResponse>;
 export function searchMovies(keyword: string, page?: number, limit?: number): Promise<MovieResponse>;
+export function getSimilarMovies(movieDetail: MovieDetail, limit?: number): Promise<SimilarMoviesResponse>;
+
+declare module '../api/movieApi' {
+  interface Category {
+    id: string;
+    name: string;
+    slug: string;
+  }
+
+  interface Country {
+    id: string;
+    name: string;
+    slug: string;
+  }
+
+  interface MovieDetail {
+    _id: string;
+    name: string;
+    origin_name?: string;
+    content?: string;
+    type?: string;
+    status?: string;
+    thumb_url?: string;
+    poster_url?: string;
+    year?: number | string;
+    time?: string;
+    episode_current?: string;
+    episode_total?: string;
+    quality?: string;
+    lang?: string;
+    actor?: string[];
+    director?: string[];
+    category?: Category[];
+    country?: Country[];
+    slug: string;
+  }
+
+  interface SimilarMovie {
+    _id: string;
+    name: string;
+    slug: string;
+    thumb_url: string;
+    poster_url?: string;
+    year?: string;
+    quality?: string;
+  }
+
+  interface SimilarMoviesResponse {
+    status: string;
+    data?: {
+      items: SimilarMovie[];
+      total: number;
+    };
+    msg?: string;
+  }
+
+  // Existing exported functions
+  export function getNewMovies(page?: number, limit?: number): Promise<any>;
+  export function getMoviesByYear(year?: number, page?: number, limit?: number): Promise<any>;
+  export function getCategoryMovies(category: string, page?: number, limit?: number): Promise<any>;
+  export function fetchMovieDetail(slug: string): Promise<any>;
+  export function searchMovies(keyword: string, page?: number, limit?: number): Promise<any>;
+
+  // The new function we added
+  export function getSimilarMovies(movieDetail: MovieDetail, limit?: number): Promise<SimilarMoviesResponse>;
+}

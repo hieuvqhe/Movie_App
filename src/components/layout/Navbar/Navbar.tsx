@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   FiSearch, FiMenu, FiUser, FiLogIn, FiUserPlus, FiHeart, 
-  FiLogOut, FiHome, FiFilm, FiTv, FiX 
+  FiLogOut, FiHome, FiFilm, FiTv,  
 } from 'react-icons/fi';
 import useAuthStore from '../../../store/authStore';
 import useUIStore from '../../../store/uiStore';

@@ -176,23 +176,13 @@ export const addFavorite = async (movieData) => {
     if (!token) {
       throw new Error('Không tìm thấy token đăng nhập');
     }
-
+    const processedData = {
+      ...movieData,
+      type: movieData.type === "single" ? "movie" : movieData.type
+    };
     // Log the full request payload for debugging
-    console.log('Adding favorite - Full payload:', movieData);
+    console.log('Adding favorite - Full payload:', processedData);
 
-    // Ensure all required fields are present
-    if (!movieData.movieId || !movieData.name || !movieData.slug || 
-        !movieData.thumbUrl || !movieData.type || !movieData.year) {
-      console.error('Missing required fields:', {
-        hasMovieId: !!movieData.movieId,
-        hasName: !!movieData.name,
-        hasSlug: !!movieData.slug,
-        hasThumbUrl: !!movieData.thumbUrl,
-        hasType: !!movieData.type,
-        hasYear: !!movieData.year
-      });
-      throw new Error('Thiếu thông tin phim');
-    }
 
     const response = await fetch(`${BASE_URL}/movie/favorites`, {
       method: 'POST',
@@ -200,7 +190,7 @@ export const addFavorite = async (movieData) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(movieData)
+      body: JSON.stringify(processedData)
     });
     
     const data = await response.json();
@@ -274,3 +264,4 @@ export const checkMovieFavoriteStatus = async (movieId) => {
     return false;
   }
 };
+

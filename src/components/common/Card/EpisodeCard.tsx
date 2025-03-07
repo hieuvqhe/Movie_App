@@ -18,7 +18,6 @@ export interface EpisodeCardProps {
 }
 
 const EpisodeCard: React.FC<EpisodeCardProps> = ({
-  id,
   seriesId,
   title,
   thumbnailUrl,
