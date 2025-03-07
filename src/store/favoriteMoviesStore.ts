@@ -57,7 +57,9 @@ const useFavoriteMoviesStore = create<FavoriteMoviesState>()(
             set({ 
               favorites: response.favoriteMovies.map(movie => ({
                 ...movie,
-                _id: movie._id || movie.movieId // Use movieId as fallback if _id doesn't exist
+                _id: movie._id || movie.movieId, // Use movieId as fallback if _id doesn't exist
+                type: movie.type || '', // Ensure type is always a string
+                year: String(movie.year || '') // Ensure year is always a string
               })), 
               isLoading: false 
             });

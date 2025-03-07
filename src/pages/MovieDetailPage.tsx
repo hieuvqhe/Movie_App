@@ -43,6 +43,7 @@ interface Country {
 interface MovieDetail {
   _id: string;
   name: string;
+  slug: string; // Add slug property to match the expected type
   origin_name?: string;
   content?: string;
   type?: string;
@@ -299,10 +300,7 @@ const MovieDetailPage: React.FC = () => {
     }
   };
 
-  // Navigate to a similar movie
-  const handleSimilarMovieClick = (movieSlug: string) => {
-    navigate(`/movie/${movieSlug}`);
-  };
+
 
   if (loading) {
     return (
@@ -745,6 +743,7 @@ const MovieDetailPage: React.FC = () => {
                     src={movie.poster_url || movie.thumb_url || DEFAULT_IMAGE}
                     alt={movie.name}
                     className="w-full h-48 sm:h-56 object-cover"
+                    onClick={()=> navigate(`/movie/${movie.slug}`)}
                     onError={(e) => {
                       e.currentTarget.src = DEFAULT_IMAGE;
                     }}

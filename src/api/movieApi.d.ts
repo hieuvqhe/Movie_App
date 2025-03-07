@@ -60,13 +60,19 @@ export interface SearchParams {
   keyword: string;
   page?: number;
   limit?: number;
+  sort_field?: 'modified.time' | '_id' | 'year';
+  sort_type?: 'desc' | 'asc';
+  sort_lang?: 'vietsub' | 'thuyet-minh' | 'long-tieng';
+  category?: string;
+  country?: string;
+  year?: string;
 }
 
 export function getNewMovies(page?: number, limit?: number): Promise<MovieResponse>;
 export function getMoviesByYear(year?: number, page?: number, limit?: number): Promise<MovieResponse>;
 export function getCategoryMovies(category: string, page?: number, limit?: number): Promise<MovieResponse>;
 export function fetchMovieDetail(slug: string): Promise<MovieResponse>;
-export function searchMovies(keyword: string, page?: number, limit?: number): Promise<MovieResponse>;
+export function searchMovies(params: SearchParams): Promise<MovieResponse>;
 export function getSimilarMovies(movieDetail: MovieDetail, limit?: number): Promise<SimilarMoviesResponse>;
 
 declare module '../api/movieApi' {
@@ -128,8 +134,9 @@ declare module '../api/movieApi' {
   export function getMoviesByYear(year?: number, page?: number, limit?: number): Promise<any>;
   export function getCategoryMovies(category: string, page?: number, limit?: number): Promise<any>;
   export function fetchMovieDetail(slug: string): Promise<any>;
-  export function searchMovies(keyword: string, page?: number, limit?: number): Promise<any>;
+  export function searchMovies(params: SearchParams): Promise<any>;
 
   // The new function we added
   export function getSimilarMovies(movieDetail: MovieDetail, limit?: number): Promise<SimilarMoviesResponse>;
 }
+
