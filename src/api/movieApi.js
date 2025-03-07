@@ -103,15 +103,37 @@ export const fetchMovieDetail = async (slug) => {
   }
 };
 
-export const searchMovies = async (keyword, page = 1, limit = 24) => {
+export const searchMovies = async (params) => {
   try {
-    const response = await axios.get(`${BASE_URL}/v1/api/tim-kiem`, {
-      params: {
-        keyword,
-        page,
-        limit
-      }
-    });
+    // Extract all possible parameters with defaults
+    const {
+      keyword,
+      page = 1,
+      limit = 24,
+      sort_field,
+      sort_type,
+      sort_lang,
+      category,
+      country,
+      year
+    } = params;
+
+    // Build query parameters object
+    const queryParams = {
+      keyword,
+      page,
+      limit
+    };
+
+    // Add optional parameters if provided
+    if (sort_field) queryParams.sort_field = sort_field;
+    if (sort_type) queryParams.sort_type = sort_type;
+    if (sort_lang) queryParams.sort_lang = sort_lang;
+    if (category) queryParams.category = category;
+    if (country) queryParams.country = country;
+    if (year) queryParams.year = year;
+
+    const response = await axios.get(`${BASE_URL}/v1/api/tim-kiem`, { params: queryParams });
 
     if (response.data?.status === 'success') {
       const items = response.data.data.items.map(item => ({
@@ -144,7 +166,6 @@ export const searchMovies = async (keyword, page = 1, limit = 24) => {
     throw new Error('Không thể tìm kiếm phim. Vui lòng thử lại sau.');
   }
 };
-
 
 export const getSimilarMovies = async (movieDetail, limit = 12) => {
   try {

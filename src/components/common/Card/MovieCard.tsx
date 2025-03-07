@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiClock, FiStar, FiCalendar, FiPlay, FiPlus, FiHeart } from 'react-icons/fi';
+import { FiClock, FiStar, FiCalendar, FiPlay, FiHeart } from 'react-icons/fi';
 import Card from './Card';
 import Button from '../Button';
 
@@ -16,7 +16,10 @@ export interface MovieCardProps {
   isFavorited?: boolean;
   onFavoriteToggle?: () => void;
   onWatch?: () => void;
-  onAddToWatchlist?: () => void;
+  slug?: string;
+  quality?: string;
+  lang?: string;
+  episodeCurrent?: string;
 }
 
 const MovieCard: React.FC<MovieCardProps> = ({
@@ -31,7 +34,7 @@ const MovieCard: React.FC<MovieCardProps> = ({
   isFavorited = false,
   onFavoriteToggle,
   onWatch,
-  onAddToWatchlist,
+  slug,
 }) => {
   return (
     <Card
@@ -42,10 +45,26 @@ const MovieCard: React.FC<MovieCardProps> = ({
       <div className="relative aspect-[2/3] overflow-hidden">
         <img 
           src={posterUrl} 
-          alt={`${title} poster`}
+          alt={`Poster ${title}`}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           loading="lazy"
         />
+        
+        {/* Favorite button in corner */}
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onFavoriteToggle?.();
+          }}
+          className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+          title={isFavorited ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
+        >
+          <FiHeart 
+            className={`transition-colors duration-300 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-white hover:text-red-400'}`} 
+            size={16} 
+          />
+        </button>
         
         {/* Overlay on hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
@@ -57,36 +76,14 @@ const MovieCard: React.FC<MovieCardProps> = ({
               icon={<FiPlay />} 
               onClick={onWatch}
             >
-              Watch Now
+              Xem Ngay
             </Button>
-            <div className="flex space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                icon={<FiPlus />} 
-                onClick={onAddToWatchlist}
-                className="flex-1"
-              >
-                Watchlist
-              </Button>
-              <Button 
-                variant="icon" 
-                size="sm"
-                onClick={onFavoriteToggle}
-                className="bg-gray-700 hover:bg-gray-600"
-              >
-                <FiHeart 
-                  className={isFavorited ? 'fill-red-500 text-red-500' : ''} 
-                  size={18} 
-                />
-              </Button>
-            </div>
           </div>
         </div>
         
         {/* Rating badge */}
         {rating !== undefined && (
-          <div className="absolute top-2 right-2 bg-black/80 text-yellow-400 rounded-full px-2 py-1 text-xs flex items-center">
+          <div className="absolute top-2 left-2 bg-black/80 text-yellow-400 rounded-full px-2 py-1 text-xs flex items-center">
             <FiStar className="mr-1" />
             {rating.toFixed(1)}
           </div>
@@ -95,7 +92,7 @@ const MovieCard: React.FC<MovieCardProps> = ({
 
       {/* Movie info */}
       <div className="p-4">
-        <Link to={`/movie/${id}`} className="hover:text-rose-500 transition-colors">
+        <Link to={`/phim/${slug || id}`} className="hover:text-rose-500 transition-colors">
           <h3 className="font-bold text-white truncate text-lg">{title}</h3>
         </Link>
         

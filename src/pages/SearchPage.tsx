@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { searchMovies } from '../api/movieApi';
+import { addFavorite, removeFavorite, checkMovieFavoriteStatus } from '../api/userApi';
 import { MovieCard } from '../components/common';
 import SearchBar from '../components/search/SearchBar';
 import SearchFilters, { FilterOptions } from '../components/search/SearchFilters';
 import Pagination from '../components/common/Pagination';
 import { Loader } from '../components/common';
 import { FiSearch } from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
 
 // Updated Movie interface to match API response
 interface Movie {
@@ -40,12 +42,15 @@ const SearchPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState<FilterOptions>({
-    genre: searchParams.get('genre') || undefined,
+    category: searchParams.get('category') || undefined,
     year: searchParams.get('year') || undefined,
     country: searchParams.get('country') || undefined,
-    type: (searchParams.get('type') as 'movie' | 'tvshow' | 'all') || 'all',
-    sort: (searchParams.get('sort') as 'relevance' | 'latest' | 'oldest' | 'rating') || 'relevance',
+    sort_field: searchParams.get('sort_field') || 'modified.time',
+    sort_type: searchParams.get('sort_type') || 'desc',
+    sort_lang: searchParams.get('sort_lang') || undefined,
   });
+  const [favoriteStatus, setFavoriteStatus] = useState<Record<string, boolean>>({});
+  const navigate = useNavigate();
   
   const resultsPerPage = 24; // Match API default
 
@@ -55,11 +60,12 @@ const SearchPage: React.FC = () => {
     
     if (initialQuery) params.set('q', initialQuery);
     if (currentPage > 1) params.set('page', currentPage.toString());
-    if (filters.genre) params.set('genre', filters.genre);
+    if (filters.category) params.set('category', filters.category);
     if (filters.year) params.set('year', filters.year);
     if (filters.country) params.set('country', filters.country);
-    if (filters.type && filters.type !== 'all') params.set('type', filters.type);
-    if (filters.sort && filters.sort !== 'relevance') params.set('sort', filters.sort);
+    if (filters.sort_field && filters.sort_field !== 'modified.time') params.set('sort_field', filters.sort_field);
+    if (filters.sort_type && filters.sort_type !== 'desc') params.set('sort_type', filters.sort_type);
+    if (filters.sort_lang) params.set('sort_lang', filters.sort_lang);
     
     setSearchParams(params);
   }, [initialQuery, currentPage, filters, setSearchParams]);
@@ -77,8 +83,21 @@ const SearchPage: React.FC = () => {
       setError(null);
 
       try {
+        // Prepare search parameters for the API
+        const searchParams = {
+          keyword: initialQuery,
+          page: currentPage,
+          limit: resultsPerPage,
+          ...filters
+        };
+        
+        // Remove undefined values
+        Object.keys(searchParams).forEach(key => 
+          searchParams[key] === undefined && delete searchParams[key]
+        );
+
         // Call the actual API function from movieApi.js
-        const response = await searchMovies(initialQuery, currentPage, resultsPerPage);
+        const response = await searchMovies(searchParams);
         
         if (response.status === 'success' && response?.data?.items) {
           setSearchResults(response.data.items);
@@ -100,6 +119,32 @@ const SearchPage: React.FC = () => {
 
     fetchSearchResults();
   }, [initialQuery, currentPage, filters]);
+
+  // Fetch favorite status for all displayed movies
+  useEffect(() => {
+    const checkFavorites = async () => {
+      if (!searchResults.length) return;
+      
+      const statusMap: Record<string, boolean> = {};
+      
+      // Check favorite status for each movie in parallel
+      await Promise.all(
+        searchResults.map(async (movie) => {
+          try {
+            const isFavorited = await checkMovieFavoriteStatus(movie._id);
+            statusMap[movie._id] = isFavorited;
+          } catch (error) {
+            console.error(`Error checking favorite status for ${movie._id}:`, error);
+            statusMap[movie._id] = false;
+          }
+        })
+      );
+      
+      setFavoriteStatus(statusMap);
+    };
+    
+    checkFavorites();
+  }, [searchResults]);
 
   const handleSearch = (query: string) => {
     if (query !== initialQuery) {
@@ -126,6 +171,61 @@ const SearchPage: React.FC = () => {
     if (!url) return '';
     return url.startsWith('http') ? url : `https://phimimg.com/${url}`;
   };
+
+  // Handle favorite toggle with proper API calls
+  const handleFavoriteToggle = useCallback(async (movie: Movie) => {
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem('accessToken');
+    if (!isLoggedIn) {
+      toast.error('Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+      navigate('/login', { state: { from: location.pathname + location.search } });
+      return;
+    }
+    
+    const movieId = movie._id;
+    const currentStatus = favoriteStatus[movieId] || false;
+    
+    try {
+      // Optimistically update UI
+      setFavoriteStatus(prev => ({
+        ...prev,
+        [movieId]: !currentStatus
+      }));
+      
+      if (!currentStatus) {
+        // Add to favorites
+        const movieData = {
+          movieId: movie._id,
+          name: movie.name,
+          slug: movie.slug,
+          thumbUrl: movie.thumb_url || movie.poster_url || '',
+          year: movie.year,
+          type: 'movie' // Default type
+        };
+        
+        await addFavorite(movieData);
+        toast.success('Đã thêm vào danh sách yêu thích');
+      } else {
+        // Remove from favorites
+        await removeFavorite(movieId);
+        toast.success('Đã xóa khỏi danh sách yêu thích');
+      }
+    } catch (error) {
+      // Revert on error
+      setFavoriteStatus(prev => ({
+        ...prev,
+        [movieId]: currentStatus
+      }));
+      
+      const errorMsg = error instanceof Error ? error.message : 'Đã xảy ra lỗi';
+      toast.error(errorMsg);
+      console.error('Favorite toggle error:', error);
+    }
+  }, [favoriteStatus, navigate]);
+
+  const handleWatch = useCallback((movieId: string, slug: string) => {
+    navigate(`/movie/${slug || movieId}`);
+  }, [navigate]);
 
   return (
     <div className="bg-gray-900 min-h-screen py-8">
@@ -165,7 +265,7 @@ const SearchPage: React.FC = () => {
           <>
             <div className="text-gray-300 mb-6">
               Tìm thấy {totalResults} kết quả cho "{initialQuery}"
-              {filters.genre && ` trong thể loại "${filters.genre}"`}
+              {filters.category && ` trong thể loại "${filters.category}"`}
               {filters.year && ` từ năm ${filters.year}`}
             </div>
             
@@ -177,10 +277,10 @@ const SearchPage: React.FC = () => {
                   title={movie.name}
                   posterUrl={getImageUrl(movie.poster_url || movie.thumb_url)}
                   slug={movie.slug}
-                  year={movie.year}
-                  quality={movie.quality}
-                  lang={movie.lang}
-                  episodeCurrent={movie.episode_current}
+                  year={typeof movie.year === 'string' ? parseInt(movie.year, 10) || undefined : movie.year}
+                  isFavorited={favoriteStatus[movie._id] || false}
+                  onFavoriteToggle={() => handleFavoriteToggle(movie)}
+                  onWatch={() => handleWatch(movie._id, movie.slug)}
                 />
               ))}
             </div>
