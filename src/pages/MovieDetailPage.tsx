@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
-import { fetchMovieDetail } from "../api/movieApi";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { fetchMovieDetail, getSimilarMovies } from "../api/movieApi";
 import { Loader } from "../components/common";
 import VideoPlayer from "../components/movie/VideoPlayer";
 import useAuthStore from "../store/authStore";
-import useFavoriteMoviesStore from "../store/favoriteMoviesStore"; // Import favorites store
+import useFavoriteMoviesStore from "../store/favoriteMoviesStore";
 import Button from "../components/common/Button/Button";
-import { FiPlay, FiRefreshCw } from "react-icons/fi";
+import { FiPlay, FiRefreshCw, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { HeartIcon as HeartOutline } from "@heroicons/react/24/outline";
-import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid"; // For filled heart
-import { toast } from "react-hot-toast"; // For toast notifications
+import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
+import { toast } from "react-hot-toast";
+
+// Default image to use when movie poster/thumbnail is missing
+const DEFAULT_IMAGE = "https://via.placeholder.com/300x450?text=No+Image";
 
 // Types based on API response structure
 interface Episode {
@@ -58,8 +61,20 @@ interface MovieDetail {
   country?: Country[];
 }
 
+// New interface for similar movies
+interface SimilarMovie {
+  _id: string;
+  name: string;
+  slug: string;
+  thumb_url: string;
+  poster_url?: string;
+  year?: string;
+  quality?: string;
+}
+
 const MovieDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [movieDetail, setMovieDetail] = useState<MovieDetail | null>(null);
   const [episodes, setEpisodes] = useState<ServerData[]>([]);
   const [selectedServer, setSelectedServer] = useState<string>("");
@@ -67,6 +82,13 @@ const MovieDetailPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
+  
+  // Add similar movies state
+  const [similarMovies, setSimilarMovies] = useState<SimilarMovie[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState<boolean>(false);
+  
+  // Carousel scroll ref and state
+  const carouselRef = useRef<HTMLDivElement>(null);
   
   // Use auth and favorites stores
   const { user } = useAuthStore();
@@ -104,6 +126,9 @@ const MovieDetailPage: React.FC = () => {
               // Don't set showPlayer to true here
             }
           }
+          
+          // Fetch similar movies once we have the movie details
+          fetchSimilarMovies(data.movie);
         } else {
           setError("Không tìm thấy thông tin phim");
         }
@@ -117,6 +142,22 @@ const MovieDetailPage: React.FC = () => {
 
     getMovieDetails();
   }, [slug]);
+
+  // Fetch similar movies based on current movie
+  const fetchSimilarMovies = async (movie: MovieDetail) => {
+    try {
+      setLoadingSimilar(true);
+      const response = await getSimilarMovies(movie, 12);
+      
+      if (response.status === 'success' && response.data && response.data.items) {
+        setSimilarMovies(response.data.items);
+      }
+    } catch (error) {
+      console.error('Error loading similar movies:', error);
+    } finally {
+      setLoadingSimilar(false);
+    }
+  };
 
   // Function to handle server selection
   const handleServerChange = useCallback(
@@ -198,8 +239,9 @@ const MovieDetailPage: React.FC = () => {
           thumbUrl: movieDetail.thumb_url || "",
           posterUrl: movieDetail.poster_url || "",
           // Ensure type is never empty - explicitly set single movies to 'single'
-          type: movieDetail.type === "single" ? "single" : 
-                movieDetail.type || "single",
+          type: movieDetail.type === "single" ? "movie" : // Chuyển đổi 'single' -> 'movie'
+          movieDetail.type === "movie" ? "movie" : // Giữ nguyên nếu đã là movie
+          movieDetail.type || "movie", // Mặc định là 'movie'
           // Make sure year is a non-empty string
           year: typeof movieDetail.year === 'number' ? 
                 movieDetail.year.toString() : 
@@ -243,6 +285,24 @@ const MovieDetailPage: React.FC = () => {
       }
     }
   }, [selectedEpisode, episodes]);
+
+  // Carousel scroll handlers
+  const handlePrevScroll = () => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: -carouselRef.current.offsetWidth * 0.75, behavior: 'smooth' });
+    }
+  };
+
+  const handleNextScroll = () => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: carouselRef.current.offsetWidth * 0.75, behavior: 'smooth' });
+    }
+  };
+
+  // Navigate to a similar movie
+  const handleSimilarMovieClick = (movieSlug: string) => {
+    navigate(`/movie/${movieSlug}`);
+  };
 
   if (loading) {
     return (
@@ -650,6 +710,70 @@ const MovieDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Similar Movies Section */}
+      <div className="justify-center items-center bg-gray-900 p-4 max-w-6xl mx-auto">
+  {similarMovies.length > 0 && (
+    <div className="mt-8 pb-4">
+      <h2 className="text-xl font-bold text-white mb-3">Phim tương tự</h2>
+      
+      <div className="relative">
+        <button 
+          onClick={handlePrevScroll}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black bg-opacity-60 p-1.5 rounded-full hover:bg-opacity-80 transition-all"
+        >
+          <FiChevronLeft className="text-white text-xl" />
+        </button>
+        
+        <div 
+          ref={carouselRef}
+          className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide snap-x scroll-smooth"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {loadingSimilar ? (
+            <div className="flex justify-center items-center w-full py-6">
+              <div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            similarMovies.map((movie) => (
+              <div 
+                key={movie._id} 
+                className="flex-none w-32 sm:w-40 snap-start cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <div className="relative rounded-lg overflow-hidden">
+                  <img 
+                    src={movie.poster_url || movie.thumb_url || DEFAULT_IMAGE}
+                    alt={movie.name}
+                    className="w-full h-48 sm:h-56 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_IMAGE;
+                    }}
+                  />
+                  {movie.quality && (
+                    <span className="absolute top-1 right-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded">
+                      {movie.quality}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-white font-medium mt-1 line-clamp-1 text-sm">{movie.name}</h3>
+                {movie.year && (
+                  <span className="text-gray-400 text-xs">{movie.year}</span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        
+        <button 
+          onClick={handleNextScroll}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black bg-opacity-60 p-1.5 rounded-full hover:bg-opacity-80 transition-all"
+        >
+          <FiChevronRight className="text-white text-xl" />
+        </button>
+      </div>
+    </div>
+  )}
+</div>
     </div>
   );
 };

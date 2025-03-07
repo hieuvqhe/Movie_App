@@ -32,7 +32,8 @@ const Input: React.FC<InputProps> = ({
   ...rest
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  // Remove unused state
+  // const [isFocused, setIsFocused] = useState(false);
   
   // Generate a unique ID if not provided
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
@@ -98,13 +99,11 @@ const Input: React.FC<InputProps> = ({
           </div>
         )}
         
-        {/* Input Element */}
         <input
           id={inputId}
           type={inputType}
           className={inputClasses}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          // Remove unused focus handlers
           {...rest}
         />
         
