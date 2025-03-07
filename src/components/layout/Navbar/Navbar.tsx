@@ -51,7 +51,11 @@ const Navbar: React.FC<NavbarProps> = ({ className = '' }) => {
   const debouncedSearch = debounce(async (query: string) => {
     if (query.trim()) {
       try {
-        const results = await searchMovies(query, 1, 7);
+        const results = await searchMovies({
+          keyword: query,
+          page: 1,
+          limit: 7
+        });
         setSearchResults(results?.data?.items || []);
         setShowDropdown(true);
       } catch (error) {

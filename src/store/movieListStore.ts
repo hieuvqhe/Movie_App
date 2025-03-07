@@ -95,7 +95,7 @@ const mockSearchMovies = async (query: string): Promise<Movie[]> => {
 };
 
 // Create the store
-const useMovieListStore = create<MovieListState>()((set, get) => ({
+const useMovieListStore = create<MovieListState>()((set) => ({
   // Initial state
   movies: {
     popular: [],

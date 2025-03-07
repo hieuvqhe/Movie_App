@@ -107,7 +107,7 @@ const HomePage: React.FC = () => {
         // Process banner movies - handle the nested data structure properly
         if (bannerMoviesData?.data?.items && bannerMoviesData.data.items.length > 0) {
           // Transform the data to include proper image URLs
-          const processedMovies = bannerMoviesData.data.items.map(movie => ({
+          const processedMovies = bannerMoviesData.data.items.map((movie: { poster_url: string; thumb_url: string; }) => ({
             ...movie,
             // Ensure poster_url is a full URL
             poster_url: movie.poster_url?.startsWith('http') 
@@ -191,7 +191,14 @@ const HomePage: React.FC = () => {
             category="phim-moi-cap-nhat" 
           />
         )}
-  
+        
+        {newMovies.length > 0 && (
+          <MovieRow 
+            title="Phim năm 2025" 
+            movies={newMovies} 
+            category="phim-nam-2025" 
+          />
+        )}
         
         {/* Lazy loaded rows - loaded when scrolled into view */}
         <MovieRowLazy 

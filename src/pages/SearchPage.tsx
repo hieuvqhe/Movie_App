@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { searchMovies } from '../api/movieApi';
+import { searchMovies, SearchParams } from '../api/movieApi';
 import { addFavorite, removeFavorite, checkMovieFavoriteStatus } from '../api/userApi';
 import { MovieCard } from '../components/common';
 import SearchBar from '../components/search/SearchBar';
@@ -92,12 +92,13 @@ const SearchPage: React.FC = () => {
         };
         
         // Remove undefined values
-        Object.keys(searchParams).forEach(key => 
-          searchParams[key] === undefined && delete searchParams[key]
-        );
+        Object.keys(searchParams).forEach(key => {
+          const typedKey = key as keyof typeof searchParams;
+          searchParams[typedKey] === undefined && delete searchParams[typedKey];
+        });
 
         // Call the actual API function from movieApi.js
-        const response = await searchMovies(searchParams);
+        const response = await searchMovies(searchParams as SearchParams);
         
         if (response.status === 'success' && response?.data?.items) {
           setSearchResults(response.data.items);
